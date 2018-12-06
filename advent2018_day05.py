@@ -1,6 +1,6 @@
 # Wow.  For some reason, my usual method of just pasting the input as a string literal in Python resulted
 # in completely bonkers memory consumption to the tune of gigabytes.  If I read from a file, everything's fine.
-INPUT = open("advent2018_day5_input.txt", "r").readlines()[0].strip()
+INPUT = open("advent2018_day05_input.txt", "r").readlines()[0].strip()
 
 def react_polymer(polymer, filter=None):
     i = 0
