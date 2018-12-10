@@ -21,10 +21,8 @@ def update_positions(positions, velocities):
 
 
 def get_scatter_size(positions):
-    xmax = np.amax(positions, axis=0)[0]
-    xmin = np.amin(positions, axis=0)[0]
-    ymax = np.amax(positions, axis=0)[1]
-    ymin = np.amin(positions, axis=0)[1]
+    xmax, ymax = np.amax(positions, axis=0)
+    xmin, ymin = np.amin(positions, axis=0)
     return xmax-xmin, ymax-ymin
 
 
@@ -32,9 +30,9 @@ def printable_array(positions):
     min_x, min_y = np.amin(positions, axis=0)
     max_x, max_y = np.amax(positions, axis=0)
     shaved_array = np.add(positions, (-min_x, -min_y))
-    new_array = np.zeros([max_y-min_y+1,max_x-min_x+1], dtype=np.bool)
+    new_array = np.zeros([max_y-min_y+1, max_x-min_x+1], dtype=np.bool)
     for x, y in shaved_array:
-        new_array[y,x] = True
+        new_array[y, x] = True
     return new_array
 
 
@@ -46,14 +44,13 @@ current_positions = PARSED_POSITIONS
 x_size, y_size = get_scatter_size(current_positions)
 while True:
     previous_positions = current_positions
-    current_positions = update_positions(current_positions, PARSED_VELOCITIES)
+    current_positions = np.add(current_positions, PARSED_VELOCITIES)
     old_x_size, old_y_size = x_size, y_size
     x_size, y_size = get_scatter_size(current_positions)
     if y_size < 100 and old_x_size*old_y_size <= x_size*y_size:
         print("For generation %d, size is %dx%d" % (generation-1, old_x_size, old_y_size))
-        new_array = printable_array(previous_positions)
-        print(new_array)
-        exit()
-
+        output_array = printable_array(previous_positions)
+        print(output_array)
+        break
     generation += 1
 
