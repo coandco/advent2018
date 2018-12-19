@@ -23,21 +23,23 @@ def make_field(input):
     return np_field
 
 
-def compute_next_step(y, x):
-    coord = Coord(x=x, y=y)
-    max_y, max_x = np_field.shape
-    slice = np_field[max(coord.y-1, 0):min(coord.y+2, max_y+1), max(coord.x-1, 0):min(coord.x+2, max_x+1)]
-    if np_field[coord] == OPEN_GROUND:
-        num_trees = (slice == TREE).sum()
-        return TREE if num_trees >= 3 else OPEN_GROUND
-    elif np_field[coord] == TREE:
-        num_lumberyards = (slice == LUMBERYARD).sum()
-        return LUMBERYARD if num_lumberyards >= 3 else TREE
-    elif np_field[coord] == LUMBERYARD:
-        num_trees = (slice == TREE).sum()
-        # Don't count the lumberyard in the middle
-        num_lumberyards = (slice == LUMBERYARD).sum() - 1
-        return LUMBERYARD if (num_trees >= 1 and num_lumberyards >= 1) else OPEN_GROUND
+def compute_next_step(old_field):
+    def _compute_next_step(y, x):
+        coord = Coord(x=x, y=y)
+        max_y, max_x = old_field.shape
+        slice = old_field[max(coord.y-1, 0):min(coord.y+2, max_y+1), max(coord.x-1, 0):min(coord.x+2, max_x+1)]
+        if old_field[coord] == OPEN_GROUND:
+            num_trees = (slice == TREE).sum()
+            return TREE if num_trees >= 3 else OPEN_GROUND
+        elif old_field[coord] == TREE:
+            num_lumberyards = (slice == LUMBERYARD).sum()
+            return LUMBERYARD if num_lumberyards >= 3 else TREE
+        elif old_field[coord] == LUMBERYARD:
+            num_trees = (slice == TREE).sum()
+            # Don't count the lumberyard in the middle
+            num_lumberyards = (slice == LUMBERYARD).sum() - 1
+            return LUMBERYARD if (num_trees >= 1 and num_lumberyards >= 1) else OPEN_GROUND
+    return _compute_next_step
 
 
 ALTINPUT = """
@@ -56,7 +58,7 @@ ALTINPUT = """
 np_field = make_field(INPUT)
 old_field = np_field.copy()
 for i in xrange(1, 1000000000):
-    np_field = np.fromfunction(np.vectorize(compute_next_step), np_field.shape, dtype=int)
+    np_field = np.fromfunction(np.vectorize(compute_next_step(np_field)), np_field.shape, dtype=int)
     if i == 10:
         num_trees = (np_field == TREE).sum()
         num_lumberyards = (np_field == LUMBERYARD).sum()
