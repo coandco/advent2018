@@ -2,11 +2,6 @@ from collections import namedtuple
 import numpy as np
 
 
-# So, this was fun.  Not only do I have to set the recursion limit higher, but I can't run this code in Windows.
-# If I try, Windows terminates the process with an "out of stack space" return code.
-import sys
-sys.setrecursionlimit(10000)
-
 Coord = namedtuple('Coord', ['y', 'x'])
 INPUT_DEPTH = 8103
 INPUT_TARGET = Coord(x=9, y=758)
@@ -23,13 +18,6 @@ TORCH = 1
 CLIMBGEAR = 2
 
 SWITCH_COST = 7
-
-PRINT_DICT = {ROCKY: '.',
-              WET: '=',
-              NARROW: '|'}
-np.set_printoptions(threshold=np.nan, linewidth=2000,
-                    formatter={'int': lambda x: PRINT_DICT[x] if x in PRINT_DICT.keys() else "%d" % x,
-                               'bool': lambda x: '#' if x else '.'})
 
 
 def output_field(e_field):
@@ -77,6 +65,7 @@ HEATMAP_UNEXPLORED = -1
 HEATMAP_PRINT_DICT = {HEATMAP_IMPASSABLE: '#', HEATMAP_UNEXPLORED: '.'}
 
 
+# Old and busted.  This is extremely inefficient and hits the recursion limit.  Included for posterity.
 def update_heatmap(heatmap_field, coord, startvalue, touched_locations=None):
     if touched_locations is None:
         touched_locations = set()
@@ -105,27 +94,40 @@ def valid_adjacent(heatmap_field, coord):
     return possibilities
 
 
-def update_heatmap_v2(heatmap_field, coord_set, new_value):
+def update_heatmap_v2(heatmap_field, check_list, new_value):
     touched_locations = set()
-    next_locations = set()
-    for coord in coord_set:
-        if within_bounds(coord, heatmap_field.shape):
-            existing_value = heatmap_field[coord]
-            if existing_value == HEATMAP_UNEXPLORED or (0 <= new_value < existing_value):
-                heatmap_field[coord] = new_value
-                touched_locations.add(coord)
-                next_locations.update(valid_adjacent(heatmap_field, coord))
-    next_locations -= coord_set
-    if next_locations:
-        touched_locations.update(update_heatmap_v2(heatmap_field, next_locations, new_value+1))
+    next_locations = check_list
+
+    while next_locations:
+        next_locations = set()
+        for coord in check_list:
+            if within_bounds(coord, heatmap_field.shape):
+                existing_value = heatmap_field[coord]
+                if existing_value == HEATMAP_UNEXPLORED or (0 <= new_value < existing_value):
+                    heatmap_field[coord] = new_value
+                    touched_locations.add(coord)
+                    next_locations.update(valid_adjacent(heatmap_field, coord))
+        check_list = next_locations
+        new_value += 1
     return touched_locations
 
 
 def print_heatmap(heatmap):
     # 'with np.printoptions' requires numpy 1.15.0 or above
     with np.printoptions(threshold=np.nan, linewidth=2000,
-                         formatter={'int': lambda x: "%4s" % HEATMAP_PRINT_DICT[x] if x in HEATMAP_PRINT_DICT.keys() else "%4d" % x}):
+                         formatter={'int': lambda x: "%4s" % HEATMAP_PRINT_DICT[x]
+                                                     if x in HEATMAP_PRINT_DICT.keys() else "%4d" % x}):
         print(heatmap)
+
+
+def print_terrain(terrain):
+    PRINT_DICT = {ROCKY: '.',
+                  WET: '=',
+                  NARROW: '|'}
+    # 'with np.printoptions' requires numpy 1.15.0 or above
+    with np.printoptions(threshold=np.nan, linewidth=2000,
+                         formatter={'int': lambda x: PRINT_DICT[x] if x in PRINT_DICT.keys() else "%d" % x}):
+        print(terrain)
 
 
 def switch_tool(terrain_type, active_tool):
@@ -155,7 +157,8 @@ torch_field = (((generated_field == TORCH)*-1)-1)
 climbgear_field = (((generated_field == CLIMBGEAR)*-1)-1)
 
 heatmaps = [neither_field, torch_field, climbgear_field]
-active_sites = [set(), update_heatmap(heatmaps[TORCH], Coord(x=0, y=0), 0), set()]
+active_sites = [set(), update_heatmap_v2(heatmaps[TORCH], {Coord(x=0, y=0)}, 0), set()]
+
 
 while sum([len(x) for x in active_sites]) > 0:
     active_sites = run_iteration(generated_field, heatmaps, active_sites)
